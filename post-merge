@@ -1,0 +1,59 @@
+#!/usr/bin/perl
+
+use strict;
+use warnings;
+use Cwd;
+use File::Find;
+use File::Basename;
+use File::Copy;
+
+#file to update
+my $configFile = "Web.config";
+
+#get git name
+chomp(my $branch = `git rev-parse --abbrev-ref HEAD`);
+
+my $dir = getcwd;
+
+
+if ($branch eq 'master'){
+  $branch="PROD";
+}
+
+my $branchUC = uc $branch;
+
+
+sub update_Config{
+
+	my $dirName = $File::Find::dir;
+	my $f_branchFile= $File::Find::name;
+	my $branchFile = $_;
+
+
+	while ($branchFile =~ m/$branchUC/g) {
+
+		# save orig file name (Web.DEV.config)
+		my $branchFileOrig = $branchFile;
+
+		# create bakup file name (web.Backup.config)
+		$branchFile =~ s/DEV/Backup/;
+
+		my $bakBranchFile = $branchFile;
+
+		#create backup of config file 
+		copy($_[0],$bakBranchFile) or die "Copy failed: $!";
+
+		#remove config file
+		unlink($_[0]) or die "Cannot unlink file";
+
+		#copy dev file to cofig file
+		copy($branchFileOrig,$_[0] ) or die "Copy failed: $!";;
+
+	}
+
+}
+
+
+
+find(sub { update_Config($configFile) },$dir);
+
